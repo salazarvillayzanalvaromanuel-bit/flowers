@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxia de Flores Amarillas para Heleen 🌻</title>
+
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #020205;
+      font-family: 'Poppins', sans-serif;
+      color: #ffffff;
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* PANTALLA DE BIENVENIDA CENTRADA */
+    .overlay-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, rgba(15, 12, 5, 0.85) 0%, rgba(2, 2, 5, 0.95) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+      padding: 20px;
+    }
+
+    .overlay-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .welcome-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      padding: 2.5rem 2rem;
+      border-radius: 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.15);
+      max-width: 440px;
+      width: 100%;
+      position: relative;
+    }
+
+    .infinity-symbol {
+      font-size: 3rem;
+      color: #ffd700;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+      margin-bottom: 0.2rem;
+    }
+
+    .sub-tag {
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      color: #ffeb3b;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .main-title {
+      font-family: 'Dancing Script', cursive;
+      font-size: 2.8rem;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      margin-bottom: 0.5rem;
+    }
+
+    .dedication-quote {
+      font-size: 0.95rem;
+      color: #e0e0e0;
+      font-style: italic;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .btn-warp {
+      background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      color: #000;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-warp:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(255, 215, 0, 0.7);
+    }
+
+    /* INTERFAZ HUD */
+    .hud-header {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 2s ease 1s;
+    }
+
+    .hud-header.visible { opacity: 1; }
+
+    .hud-title {
+      font-family: 'Dancing Script', cursive;
+      font-size: 2.2rem;
+      color: #ffd700;
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+    }
+
+    .hud-badge {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #fff;
+      backdrop-filter: blur(5px);
+      margin-top: 5px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Pantalla Inicial -->
+  <div class="overlay-screen" id="welcome-screen">
+    <div class="welcome-card">
+      <div class="infinity-symbol">🌻</div>
+      <div class="sub-tag">Un detalle especial</div>
+      <h1 class="main-title">Para Heleen ✨</h1>
+      <p class="dedication-quote">
+        "Para una gran amiga... ¡que nunca falten las buenas vibras! xd 🌻"
+      </p>
+      <button class="btn-warp" id="btn-start">
+        <i class="fa-solid fa-rocket"></i> ENTRAR A LA GALAXIA
+      </button>
+    </div>
+  </div>
+
+  <div class="hud-header" id="hud-header">
+    <div class="hud-title">Galaxia de Flores Amarillas</div>
+    <div class="hud-badge">🌻 &lt;Para Heleen&gt; #FloresAmarillas✨</div>
+  </div>
+
+  <script>
+    // URL DE LA FOTO PARA EL PLANETA CENTRAL
+    const URL_DE_TU_IMAGEN = './foto.jpg';
+
+    const container = document.getElementById('canvas-container');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const btnStart = document.getElementById('btn-start');
+    const hudHeader = document.getElementById('hud-header');
+
+    let isWarping = false;
+
+    // Escena y Cámara
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020205, 0.0008);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 300);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 250;
+    controls.minDistance = 6;
+    controls.enabled = false;
+
+    // Iluminación
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xffd700, 2.5, 120);
+    scene.add(pointLight);
+
+    const textureLoader = new THREE.TextureLoader();
+    const planetTexture = textureLoader.load(URL_DE_TU_IMAGEN);
+
+    const planetGeometry = new THREE.SphereGeometry(5.5, 64, 64);
+    const planetMaterial = new THREE.MeshStandardMaterial({
+      map: planetTexture,
+      roughness: 0.3,
+      metalness: 0.1,
+      emissive: 0xffa500,
+      emissiveIntensity: 0.2
+    });
+
+    const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
+    scene.add(planetMesh);
+
+    function createGlowTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(255, 220, 100, 1)');
+      grad.addColorStop(0.4, 'rgba(255, 180, 0, 0.4)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    const glowTexture = createGlowTexture();
+    const planetGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: 0xffd700,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    }));
+    planetGlow.scale.set(22, 22, 1);
+    scene.add(planetGlow);
+
+    function createFlowerTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      const cx = 64, cy = 64;
+
+      ctx.fillStyle = '#ffcc00';
+      for (let i = 0; i < 14; i++) {
+        const angle = (i * Math.PI) / 7;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(0, 30, 9, 24, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a2506';
+      ctx.fill();
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    const flowerTexture = createFlowerTexture();
+
+    const TOTAL_FLOWERS = 4000;
+    const flowerGeom = new THREE.PlaneGeometry(1.2, 1.2);
+    const flowerMat = new THREE.MeshBasicMaterial({
+      map: flowerTexture,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+
+    const flowerInstanced = new THREE.InstancedMesh(flowerGeom, flowerMat, TOTAL_FLOWERS);
+    const dummy = new THREE.Object3D();
+    const flowerData = [];
+
+    const ringRadii = [8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41];
+    let flowerIdx = 0;
+
+    ringRadii.forEach((radius, ringIdx) => {
+      const count = Math.floor(TOTAL_FLOWERS / ringRadii.length);
+      for (let i = 0; i < count; i++) {
+        if (flowerIdx >= TOTAL_FLOWERS) break;
+
+        const angle = (i / count) * Math.PI * 2 + (Math.random() * 0.1);
+        const yOffset = (Math.random() - 0.5) * 1.5;
+        const speed = (0.002 + (ringIdx * 0.0003)) * (ringIdx % 2 === 0 ? 1 : -1);
+
+        flowerData.push({
+          angle: angle,
+          radius: radius,
+          y: yOffset,
+          speed: speed,
+          rotX: Math.PI / 2,
+          rotY: Math.random() * Math.PI
+        });
+
+        flowerIdx++;
+      }
+    });
+
+    scene.add(flowerInstanced);
+
+    function createHeartShape() {
+      const shape = new THREE.Shape();
+      const x = 0, y = 0;
+      shape.moveTo(x + 0.25, y + 0.25);
+      shape.bezierCurveTo(x + 0.25, y + 0.25, x, y, x, y - 0.25);
+      shape.bezierCurveTo(x, y - 0.75, x - 0.5, y - 1, x - 0.5, y - 1);
+      shape.bezierCurveTo(x - 0.5, y - 1, x - 1, y - 0.75, x - 1, y - 0.25);
+      shape.bezierCurveTo(x - 1, y, x - 0.75, y + 0.25, x - 0.5, y + 0.25);
+      shape.bezierCurveTo(x - 0.3, y + 0.25, x - 0.1, y + 0.1, x, y - 0.1);
+      shape.bezierCurveTo(x + 0.1, y + 0.1, x + 0.3, y + 0.25, x + 0.5, y + 0.25);
+      return shape;
+    }
+
+    const heartGeom = new THREE.ShapeGeometry(createHeartShape());
+    const heartMat = new THREE.MeshBasicMaterial({ color: 0xffea00, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+
+    const HEART_COUNT = 150;
+    const heartInstanced = new THREE.InstancedMesh(heartGeom, heartMat, HEART_COUNT);
+    const heartData = [];
+
+    for (let i = 0; i < HEART_COUNT; i++) {
+      const radius = 6 + Math.random() * 32;
+      const angle = Math.random() * Math.PI * 2;
+      const y = (Math.random() - 0.5) * 40;
+      const speedY = 0.05 + Math.random() * 0.08;
+      const scale = 0.4 + Math.random() * 0.6;
+
+      heartData.push({
+        radius: radius,
+        angle: angle,
+        y: y,
+        speedY: speedY,
+        scale: scale,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    scene.add(heartInstanced);
+
+    function create3DText(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 36px "Dancing Script", cursive';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = 15;
+      ctx.textAlign = 'center';
+      ctx.fillText(text, 256, 70);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(18, 4.5, 1);
+      return sprite;
+    }
+
+    // FRASES CORTAS FLOTANTES
+    const quotes = [
+      "Para una gran amiga ✨",
+      "Para Heleen xd 🌻",
+      "Especialmente para ti ⭐",
+      "¡Que tengas un excelente día! 🚀"
+    ];
+
+    const quoteGroup = new THREE.Group();
+    quotes.forEach((text, i) => {
+      const quoteSprite = create3DText(text);
+      const radius = 13 + i * 8;
+      const angle = (i / quotes.length) * Math.PI * 2;
+
+      quoteSprite.position.x = Math.cos(angle) * radius;
+      quoteSprite.position.z = Math.sin(angle) * radius;
+      quoteSprite.position.y = 2 + (i % 2);
+
+      quoteSprite.userData = { angle: angle, radius: radius, speed: 0.0015 };
+      quoteGroup.add(quoteSprite);
+    });
+    scene.add(quoteGroup);
+
+    // MENSAJES LARGOS EXTERIORES
+    const longMessages = [
+      {
+        title: "🌻 ¡Feliz 21 de Septiembre!",
+        text: "Heleen xd, feliz 21 de septiembre. Quería dejarte este detalle por aquí, un regalo digital de flores amarillas para la ocasión."
+      },
+      {
+        title: "✨ Gran Persona y Amiga",
+        text: "En este tiempo de conocerte sé lo buena gente, alegre y buena onda que eres. ¡Da mucho gusto contar con tu amistad!"
+      },
+      {
+        title: "💛 Buena Vibra Siempre",
+        text: "Que nunca falten los motivos para sonreír y pasarla bien. Sigue con esa actitud positiva y constante impulso hacia adelante."
+      },
+      {
+        title: "⭐ Un Saludo Especial",
+        text: "Espero que este detalle te saque una buena sonrisa. ¡Un gran abrazo de compas y los mejores éxitos en todo lo que hagas!"
+      }
+    ];
+
+    function createOuterCardTexture(titleText, bodyText) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 420;
+      const ctx = canvas.getContext('2d');
+
+      // Fondo transparente con marco dorado
+      ctx.fillStyle = 'rgba(12, 10, 3, 0.88)';
+      ctx.beginPath();
+      ctx.roundRect(15, 15, 570, 390, 24);
+      ctx.fill();
+
+      // Borde resplandeciente dorado
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#ffd700';
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+
+      // Título
+      ctx.shadowBlur = 10;
+      ctx.font = 'bold 34px "Dancing Script", cursive';
+      ctx.fillStyle = '#ffea00';
+      ctx.textAlign = 'center';
+      ctx.fillText(titleText, 300, 75);
+
+      // Línea divisoria
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+      ctx.beginPath();
+      ctx.moveTo(80, 100);
+      ctx.lineTo(520, 100);
+      ctx.stroke();
+
+      // Texto de cuerpo con wrap
+      ctx.shadowBlur = 0;
+      ctx.font = '22px "Poppins", sans-serif';
+      ctx.fillStyle = '#f0f0f0';
+
+      const words = bodyText.split(' ');
+      let line = '';
+      let y = 160;
+      const maxWidth = 480;
+      const lineHeight = 36;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, 300, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, 300, y);
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    const outerCardGroup = new THREE.Group();
+    const cardSprites = [];
+
+    const outerPositions = [
+      { x: -65, y: 25, z: -55 },
+      { x: 65, y: 25, z: -55 },
+      { x: -70, y: -20, z: 50 },
+      { x: 70, y: -20, z: 50 }
+    ];
+
+    longMessages.forEach((msg, idx) => {
+      const texture = createOuterCardTexture(msg.title, msg.text);
+      const mat = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(38, 26.6, 1);
+      const pos = outerPositions[idx];
+      sprite.position.set(pos.x, pos.y, pos.z);
+
+      sprite.userData = {
+        baseY: pos.y,
+        floatOffset: Math.random() * Math.PI * 2
+      };
+
+      cardSprites.push(sprite);
+      outerCardGroup.add(sprite);
+    });
+
+    scene.add(outerCardGroup);
+
+    const starCount = 3000;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      starPositions[i * 3] = (Math.random() - 0.5) * 400;
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 400;
+      starPositions[i * 3 + 2] = (Math.random() - 0.5) * 600;
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true });
+    const starField = new THREE.Points(starGeometry, starMaterial);
+    scene.add(starField);
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsedTime = clock.getElapsedTime();
+
+      // Rotación del planeta
+      planetMesh.rotation.y = elapsedTime * 0.12;
+
+      // Actualizar Flores
+      for (let i = 0; i < flowerData.length; i++) {
+        const data = flowerData[i];
+        data.angle += data.speed;
+
+        dummy.position.set(
+          Math.cos(data.angle) * data.radius,
+          data.y,
+          Math.sin(data.angle) * data.radius
+        );
+
+        dummy.rotation.set(data.rotX, 0, -data.angle);
+        dummy.updateMatrix();
+        flowerInstanced.setMatrixAt(i, dummy.matrix);
+      }
+      flowerInstanced.instanceMatrix.needsUpdate = true;
+
+      // Actualizar Elementos Flotantes
+      for (let i = 0; i < heartData.length; i++) {
+        const h = heartData[i];
+        h.y += h.speedY;
+        h.wobble += 0.03;
+
+        if (h.y > 30) {
+          h.y = -30;
+        }
+
+        const x = Math.cos(h.angle) * h.radius + Math.sin(h.wobble) * 0.5;
+        const z = Math.sin(h.angle) * h.radius;
+
+        dummy.position.set(x, h.y, z);
+        dummy.scale.set(h.scale, h.scale, h.scale);
+        dummy.rotation.set(0, -h.angle, 0);
+        dummy.updateMatrix();
+
+        heartInstanced.setMatrixAt(i, dummy.matrix);
+      }
+      heartInstanced.instanceMatrix.needsUpdate = true;
+
+      // Actualizar Mensajes
+      quoteGroup.children.forEach(q => {
+        q.userData.angle += q.userData.speed;
+        q.position.x = Math.cos(q.userData.angle) * q.userData.radius;
+        q.position.z = Math.sin(q.userData.angle) * q.userData.radius;
+      });
+
+      // Animación suave de flotación de los Cuadros Exteriores
+      cardSprites.forEach((sprite) => {
+        sprite.position.y = sprite.userData.baseY + Math.sin(elapsedTime * 1.5 + sprite.userData.floatOffset) * 1.2;
+      });
+
+      // Detección de Distancia de Cámara
+      const camDistance = camera.position.length();
+      let targetOpacity = (camDistance - 65) / 45;
+      targetOpacity = Math.max(0, Math.min(1, targetOpacity));
+
+      cardSprites.forEach(sprite => {
+        sprite.material.opacity = THREE.MathUtils.lerp(sprite.material.opacity, targetOpacity, 0.08);
+      });
+
+      // Hiperespacio Inicial
+      if (isWarping) {
+        camera.position.z -= (camera.position.z - 45) * 0.04;
+        const pos = starGeometry.attributes.position.array;
+        for (let i = 0; i < starCount; i++) {
+          pos[i * 3 + 2] += 10;
+          if (pos[i * 3 + 2] > 200) pos[i * 3 + 2] = -400;
+        }
+        starGeometry.attributes.position.needsUpdate = true;
+
+        if (Math.abs(camera.position.z - 45) < 1) {
+          isWarping = false;
+          controls.enabled = true;
+          hudHeader.classList.add('visible');
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    btnStart.addEventListener('click', () => {
+      welcomeScreen.classList.add('hidden');
+      isWarping = true;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
